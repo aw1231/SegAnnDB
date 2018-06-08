@@ -817,6 +817,27 @@ def export(request):
     response = respond_bed_csv(md["what"], md["format"], pinfo, dicts)
     return response
 
+#def export_bedgraph(userinput):
+    # get filename and db version
+#    os.mkdir(trackhubfolder+profilename)
+#    olddir = os.getcwd()
+#    os.chdir(trackhubfolder+profilename)
+#    hubtxt = open('hub.txt','w')
+#    hubtxt.write('hub ' + userinput['hubname'] + '\nshortLabel ' + userinput['shortlabel'] + '\nlongLabel ' + userinput['longlabel'] + '\ngenomesFile genomes.txt\nemail ' + username
+#    hubtxt.close()
+#    genomestxt = open('genomes.txt','w')
+#    genomestxt.write('genome ' + dbversion + '\ntrackDB ' + dbversion + '/trackDb.txt')
+#    genomestxt.close()
+#    os.mkdir(dbversion)
+#    os.chdir(dbversion)
+#    subprocess.call(['fetchChromSizes',dbversion,'>','chrom.sizes'])
+#    for x in userinput['profilelist']:
+#        subprocess.call(['bedToBigBed', path+filename, 'chrom.sizes', os.getcwd()+newfilename])
+#    trackdbtxt = open('trackDb.txt','w')
+#    for x in userinput['profilelist']:
+#        trackdbtxt.write('track ' + x['name'] + '\nbigDataUrl ' + x['filename'] + '\nshortLabel ' + x['shortlabel'] + '\nlongLabel ' + x['longlabel'] + '\ntype bigBed\n\n\n')
+#    trackdbtxt.close()
+#    os.chdir(olddir)
 
 def respond_bed_csv(table, fmt, hinfo, dicts):
     response = Response(content_type="text/plain")

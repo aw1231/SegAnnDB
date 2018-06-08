@@ -30,6 +30,20 @@ fi
 sed -i 's#^FILE_PREFIX.*$#FILE_PREFIX = "/var/www"#' plotter/db.py
 sudo python setup.py install
 
+if [ "$TRAVIS" = "true" ]; then
+    cd $TRAVIS_BUILD_DIR
+else
+    cd
+fi
+wget http://hgdownload.cse.ucsc.edu/admin/exe/userApps.src.tgz
+tar -xvzf userApps.src.tgz
+cd userApps
+make
+sudo cp bin/bedToBigBed /usr/local/bin/
+sudo cp bin/fetchChromSizes /usr/local/bin/
+cd ..
+sudo rm -r userApps
+
 # for an apache web server
 sudo apt-get install apache2 libapache2-mod-wsgi
 cd /var/www
