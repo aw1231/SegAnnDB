@@ -29,6 +29,7 @@ def main(global_config, **settings):
     config.add_route('add_region',
               '/add_region/{name}/{chr}/{trackType}/{annotation}/{min}/{max}/')
     config.add_route("export","/export/{user}/{name}/{what}/{format}/")
+    config.add_route('trackhub_export', '/trackhub_initial/{user}/{name}/{what}/')
     name_regex = db.HEADER_PATTERNS["name"]
     # config.add_route("secret","/secret/{name:%s}{suffix}"%name_regex)
     config.add_route("secret","/secret/{profile_name}/{name:%s}{suffix}"%name_regex)
