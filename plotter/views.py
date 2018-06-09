@@ -1,3 +1,5 @@
+
+
 from pyramid.view import view_config
 from pyramid.exceptions import Forbidden
 from pyramid.httpexceptions import HTTPFound
@@ -11,6 +13,7 @@ import db
 import os
 from datetime import datetime
 import json
+import subprocess
 
 # I am trying to override the authenticated_userid function here
 # retrieve the cookie and return to the user
@@ -817,32 +820,47 @@ def export(request):
     response = respond_bed_csv(md["what"], md["format"], pinfo, dicts)
     return response
 
-# @view_config(route_name="trackhub_export",
-#              request_method="POST",
-#              renderer="templates/trackhub_export.pt")
-# @check_export
-# def export_trackhub(request):
-#     # get filename and db version
-#     md = request.matchdict
-#     os.mkdir('trackhubs/'+md['what'])
-#     olddir = os.getcwd()
-#     os.chdir('trackhubs/'+md['what'])
-#     hubtxt = open('hub.txt','w')
-#     hubtxt.write('hub ' + md['what'] + '\nshortLabel ' + request.POST['short_label'] + '\nlongLabel ' + request.POST['long_label'] + '\ngenomesFile genomes.txt\nemail ' + md['user']
-#     hubtxt.close()
-#     genomestxt = open('genomes.txt','w')
-#     genomestxt.write('genome ' + dbversion + '\ntrackDB ' + dbversion + '/trackDb.txt')
-#     genomestxt.close()
-#     os.mkdir(dbversion)
-#     os.chdir(dbversion)
-#     os.subprocess.call(['fetchChromSizes', dbversion,'>','chrom.sizes'])
-#     for x in userinput['profilelist']:
-#         os.subprocess.call(['bedToBigBed', path+filename, 'chrom.sizes', os.getcwd()+newfilename])
-#     trackdbtxt = open('trackDb.txt','w')
-#     for x in userinput['profilelist']:
-#         trackdbtxt.write('track ' + x['name'] + '\nbigDataUrl ' + x['filename'] + '\nshortLabel ' + x['shortlabel'] + '\nlongLabel ' + x['longlabel'] + '\ntype bigBed\n\n\n')
-#     trackdbtxt.close()
-#     os.chdir(olddir)
+@view_config(route_name="trackhub_export",
+              request_method="POST",
+              renderer="templates/trackhub_export.pt")
+def export_trackhub(request):
+    # get filename and db version
+    md = request.matchdict
+    os.makedirs(os.getcwd()+'/'+'trackhubs/'+ request.POST['short_label'] + '/')
+    olddir = os.getcwd()
+    os.chdir('trackhubs/'+ request.POST['short_label'])
+    hubtxt = open('hub.txt','w')
+    hubtxt.write('hub ' + request.POST['short_label'] + '\nshortLabel ' + request.POST['short_label'] + '\nlongLabel ' + request.POST['long_label'] + '\ngenomesFile genomes.txt\nemail ' + md['user'])
+    hubtxt.close()
+    genomestxt = open('genomes.txt','w')
+    genomestxt.write('genome ' + request.POST['db'] + '\ntrackDB ' + request.POST['db'] + '/trackDb.txt')
+    genomestxt.close()
+    os.mkdir(request.POST['db'])
+    os.chdir(request.POST['db'])
+    subprocess.call(['fetchChromSizes', request.POST['db'],'>','chrom.sizes'])
+    for x in request.POST['profile']:
+        subprocess.call(['bedToBigBed', path+filename, 'chrom.sizes', os.getcwd()+newfilename])
+    trackdbtxt = open('trackDb.txt','w')
+    for x in userinput['profilelist']:
+        trackdbtxt.write('track ' + x['name'] + '\nbigDataUrl ' + x['filename'] + '\nshortLabel ' + x['shortlabel'] + '\nlongLabel ' + x['longlabel'] + '\ntype bigBed\n\n\n')
+    trackdbtxt.close()
+    os.chdir(olddir)
+    return request
+
+@view_config(route_name="trackhub_export",
+              request_method="GET",
+              renderer="templates/trackhub_export.pt")
+def trackhub_export_show(request):
+    userid = authenticated_userid(request)
+    profile_names = db.UserProfiles(userid).get()
+    # show only a few of the most recently uploaded profiles.
+    profiles = table_profiles(profile_names[:5], userid)
+    info = {
+        'profile_count': len(profile_names),
+        'profiles': profiles,
+        'user': userid,
+    }
+    return info
 
 def respond_bed_csv(table, fmt, hinfo, dicts):
     response = Response(content_type="text/plain")
