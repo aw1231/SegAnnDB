@@ -820,47 +820,71 @@ def export(request):
     response = respond_bed_csv(md["what"], md["format"], pinfo, dicts)
     return response
 
+
 @view_config(route_name="trackhub_export",
-              request_method="POST",
-              renderer="templates/trackhub_export.pt")
+             request_method="POST",
+             renderer="templates/trackhub_export.pt")
 def export_trackhub(request):
     # get filename and db version
     md = request.matchdict
-    os.makedirs(os.getcwd()+'/'+'trackhubs/'+ request.POST['short_label'] + '/')
+    os.makedirs(os.getcwd()+'/'+'trackhubs/' + request.POST['short_label'] + '/')
     olddir = os.getcwd()
-    os.chdir('trackhubs/'+ request.POST['short_label'])
-    hubtxt = open('hub.txt','w')
-    hubtxt.write('hub ' + request.POST['short_label'] + '\nshortLabel ' + request.POST['short_label'] + '\nlongLabel ' + request.POST['long_label'] + '\ngenomesFile genomes.txt\nemail ' + md['user'])
+    os.chdir('trackhubs/' + request.POST['short_label'])
+    hubtxt = open('hub.txt', 'w')
+    hubtxt.write('hub ' + request.POST['short_label'] + '\nshortLabel ' + request.POST['short_label'] + '\nlongLabel ' +
+                 request.POST['long_label'] + '\ngenomesFile genomes.txt\nemail ' + md['user'])
     hubtxt.close()
-    genomestxt = open('genomes.txt','w')
+    genomestxt = open('genomes.txt', 'w')
     genomestxt.write('genome ' + request.POST['db'] + '\ntrackDB ' + request.POST['db'] + '/trackDb.txt')
     genomestxt.close()
     os.mkdir(request.POST['db'])
     os.chdir(request.POST['db'])
-    subprocess.call(['fetchChromSizes', request.POST['db'],'>','chrom.sizes'])
+    chromsizes = open('chrom.sizes', 'w')
+    subprocess.call(['fetchChromSizes', request.POST['db']], stdout=chromsizes)
+    chromsizes.close()
+    if isinstance(request.POST['profile'], basestring):
+        request.POST['profile'] = [request.POST['profile']]
     for x in request.POST['profile']:
-        subprocess.call(['bedToBigBed', path+filename, 'chrom.sizes', os.getcwd()+newfilename])
-    trackdbtxt = open('trackDb.txt','w')
-    for x in userinput['profilelist']:
-        trackdbtxt.write('track ' + x['name'] + '\nbigDataUrl ' + x['filename'] + '\nshortLabel ' + x['shortlabel'] + '\nlongLabel ' + x['longlabel'] + '\ntype bigBed\n\n\n')
+        pro = db.Profile(x)
+        fun = getattr(pro, "breaks")
+        # need to
+        dicts = fun(md["user"])
+        pinfo = pro.get()
+        pinfo["table"] = "breaks"
+        pinfo["visibility"] = EXPORT_VISIBILITY["breaks"]
+        for d in dicts:
+            d["user_id"] = md["user"]
+            d["profile_id"] = x
+        tosave = respond_bed_csv('breaks', "bed", pinfo, dicts)
+        bedfile = open(x+'.bed', 'w')
+        bedfile.write(tosave.text)
+        bedfile.close()
+        subprocess.call(['bedSort', x +'.bed', x+'.bed'])
+        subprocess.call(['bedToBigBed', x+'.bed', 'chrom.sizes', x+'.bigbed'])
+    trackdbtxt = open('trackDb.txt', 'w')
+    for x in request.POST['profile']:
+        trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x+'.bigbed' + '\nshortLabel ' + request.POST['short_label'] +
+                         '\nlongLabel ' + request.POST['long_label'] + '\ntype bigBed\n\n\n')
     trackdbtxt.close()
     os.chdir(olddir)
     return request
 
+
 @view_config(route_name="trackhub_export",
-              request_method="GET",
-              renderer="templates/trackhub_export.pt")
+             request_method="GET",
+             renderer="templates/trackhub_export.pt")
 def trackhub_export_show(request):
     userid = authenticated_userid(request)
     profile_names = db.UserProfiles(userid).get()
     # show only a few of the most recently uploaded profiles.
-    profiles = table_profiles(profile_names[:5], userid)
+    profiles = table_profiles(profile_names, userid)
     info = {
         'profile_count': len(profile_names),
         'profiles': profiles,
         'user': userid,
     }
     return info
+
 
 def respond_bed_csv(table, fmt, hinfo, dicts):
     response = Response(content_type="text/plain")
