@@ -36,13 +36,19 @@ else
     cd
 fi
 wget http://hgdownload.cse.ucsc.edu/admin/exe/userApps.src.tgz
-tar -xvzf userApps.src.tgz
+tar -xzf userApps.src.tgz
+cd userApps/kent/src
+make libs
+cd utils/bedToBigBed
+make compile
+sudo cp bedToBigBed /usr/local/bin/
+cd ..
 cd userApps
 make
-sudo cp bin/bedToBigBed /usr/local/bin/
-sudo cp bin/fetchChromSizes /usr/local/bin/
-cd ..
+sudo cp fetchChromSizes /usr/local/bin/
+cd ../../../../..
 sudo rm -r userApps
+sudo rm userApps.src.tgz
 
 # for an apache web server
 sudo apt-get install apache2 libapache2-mod-wsgi
