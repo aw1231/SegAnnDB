@@ -855,9 +855,17 @@ def export_trackhub(request):
         for d in dicts:
             d["user_id"] = md["user"]
             d["profile_id"] = x
-        tosave = respond_bed_csv('breaks', "bed", pinfo, dicts)
+        tosave = respond_bed_csv('breaks', "bed", pinfo, dicts).text
+        bedtextlist = tosave.split('\n')[1:]
+        bedtextlistcopy = []
+        for line in bedtextlist:
+            linecopy = line
+            linelist = linecopy.split(' ')
+            bedtextlistcopy.append('\t'.join(linelist))
+        bedtextlist.sort()
+        bedtext = '\n'.join(bedtextlist)
         bedfile = open(x+'.bed', 'w')
-        bedfile.write(tosave.text)
+        bedfile.write(bedtext)
         bedfile.close()
         subprocess.call(['bedSort', x +'.bed', x+'.bed'])
         subprocess.call(['bedToBigBed', x+'.bed', 'chrom.sizes', x+'.bigbed'])
