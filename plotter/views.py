@@ -856,19 +856,11 @@ def export_trackhub(request):
             d["user_id"] = md["user"]
             d["profile_id"] = x
         tosave = respond_bed_csv('breaks', "bed", pinfo, dicts).text
-        bedtextlist = tosave.split('\n')[1:]
-        bedtextlistcopy = []
-        for line in bedtextlist:
-            linecopy = line
-            linelist = linecopy.split(' ')
-            bedtextlistcopy.append('\t'.join(linelist))
-        bedtextlist.sort()
-        bedtext = '\n'.join(bedtextlist)
         bedfile = open(x+'.bed', 'w')
-        bedfile.write(bedtext)
+        bedfile.write(tosave)
         bedfile.close()
-        subprocess.call(['bedSort', x +'.bed', x+'.bed'])
         subprocess.call(['bedToBigBed', x+'.bed', 'chrom.sizes', x+'.bigbed'])
+        os.remove(x+'.bed')
     trackdbtxt = open('trackDb.txt', 'w')
     for x in request.POST['profile']:
         trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x+'.bigbed' + '\nshortLabel ' + request.POST['short_label'] +
@@ -901,7 +893,11 @@ def respond_bed_csv(table, fmt, hinfo, dicts):
     header = header_tmp % hinfo + '\n'
     response.write(header)
     fmt = EXPORT_FORMATS[tup]
+    text = []
     for d in dicts:
         line = fmt % d + "\n"
-        response.write(line)
+        text.append(line)
+    text.sort()
+    textout = ''.join(text)
+    response.write(textout)
     return response
