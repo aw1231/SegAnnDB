@@ -1,0 +1,23 @@
+
+
+  <title>
+    SegAnnDB: Trackhub Details
+  </title>
+
+  <div>
+
+      <p>
+      Trackhub data for ${short_name}
+      </p>
+      <p>
+          Description: ${long_name}
+      </p>
+      <p>
+      Profiles:
+      <div tal:repeat="p profiles">
+        <td>
+        ${p}
+        </td>
+      </div>
+
+  </div>

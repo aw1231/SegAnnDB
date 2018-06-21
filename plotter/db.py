@@ -855,6 +855,10 @@ class Profile(Resource):
         # print time.time()-before, "seconds elapsed"
 
 
+class Trackhub(Resource):
+    keys = "s"
+
+
 class Models(Resource):
     keys = ("name", "chr")
 

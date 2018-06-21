@@ -1,5 +1,4 @@
-
-
+from pyramid.httpexceptions import HTTPFound
 from pyramid.view import view_config
 from pyramid.exceptions import Forbidden
 from pyramid.httpexceptions import HTTPFound
@@ -827,7 +826,7 @@ def export(request):
 def export_trackhub(request):
     # get filename and db version
     md = request.matchdict
-    os.makedirs(os.getcwd()+'/'+'trackhubs/' + request.POST['short_label'] + '/')
+    os.makedirs(os.getcwd()+'/trackhubs/' + request.POST['short_label'] + '/')
     olddir = os.getcwd()
     os.chdir('trackhubs/' + request.POST['short_label'])
     hubtxt = open('hub.txt', 'w')
@@ -867,7 +866,9 @@ def export_trackhub(request):
                          '\nlongLabel ' + request.POST['long_label'] + '\ntype bigBed\n\n\n')
     trackdbtxt.close()
     os.chdir(olddir)
-    return request
+    trackhub = db.Trackhub(request.POST['short_label'])
+    trackhub.put([request.POST['long_label'],request.POST['profile']])
+    return HTTPFound(location=request.host_url+'/trackhub/'+request.POST['short_label'])
 
 
 @view_config(route_name="trackhub_export",
@@ -885,6 +886,19 @@ def trackhub_export_show(request):
     }
     return info
 
+@view_config(route_name="trackhub_details",
+             request_method="GET",
+             renderer="templates/trackhub_details.pt")
+def trackhub_details(request):
+    md = request.matchdict
+    trackhub = db.Trackhub(md["short_name"])
+    trackhublist = trackhub.get()
+    info = {
+        'profiles': trackhublist[1],
+        'short_name': md["short_name"],
+        'long_name': trackhublist[0]
+    }
+    return info
 
 def respond_bed_csv(table, fmt, hinfo, dicts):
     response = Response(content_type="text/plain")
