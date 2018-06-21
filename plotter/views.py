@@ -868,7 +868,14 @@ def export_trackhub(request):
     os.chdir(olddir)
     trackhub = db.Trackhub(request.POST['short_label'])
     trackhub.put([request.POST['long_label'],request.POST['profile']])
-    return HTTPFound(location=request.host_url+'/trackhub/'+request.POST['short_label'])
+    usertrackhubs = db.User_Trackhubs(md["user"])
+    usertrackhubslist = usertrackhubs.get()
+    if usertrackhubslist == None:
+        usertrackhubslist = [request.POST['short_label']]
+    else:
+        usertrackhubslist.append(request.POST['short_label'])
+    usertrackhubs.put(usertrackhubslist)
+    return HTTPFound(location=request.host_url+'/trackhub/'+request.POST['short_label']+'/')
 
 
 @view_config(route_name="trackhub_export",
@@ -897,6 +904,20 @@ def trackhub_details(request):
         'profiles': trackhublist[1],
         'short_name': md["short_name"],
         'long_name': trackhublist[0]
+    }
+    return info
+
+@view_config(route_name="trackhub_list",
+             request_method="GET",
+             renderer="templates/trackhub_list.pt")
+def trackhub_list(request):
+    md = request.matchdict
+    trackhubs = db.User_Trackhubs(md["user"])
+    trackhubslist = trackhubs.get()
+    info = {
+        'url': request.host_url,
+        'trackhubs': trackhubslist,
+        'user': md["user"]
     }
     return info
 

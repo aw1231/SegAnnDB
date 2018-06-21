@@ -858,6 +858,8 @@ class Profile(Resource):
 class Trackhub(Resource):
     keys = "s"
 
+class User_Trackhubs(Resource):
+    keys = "t"
 
 class Models(Resource):
     keys = ("name", "chr")
