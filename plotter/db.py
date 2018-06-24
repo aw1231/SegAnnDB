@@ -856,10 +856,10 @@ class Profile(Resource):
 
 
 class Trackhub(Resource):
-    keys = "s"
+    keys = ("short_name",)
 
 class User_Trackhubs(Resource):
-    keys = "t"
+    keys = ("trackhubs",)
 
 class Models(Resource):
     keys = ("name", "chr")

@@ -1,23 +1,29 @@
 
-
-  <title>
+<metal:main use-macro="load: base.pt">
+  <title metal:fill-slot="title">
     SegAnnDB: Trackhub Details
   </title>
 
-  <div>
+  <div metal:fill-slot="content">
 
       <p>
+          <br/>
       Trackhub data for ${short_name}
       </p>
+      <br/>
       <p>
           Description: ${long_name}
       </p>
+      <br/>
       <p>
       Profiles:
+      <br/>
       <div tal:repeat="p profiles">
         <td>
-        ${p}
+            <a href="/profile/${p}/">${p}</a>
         </td>
       </div>
-
+      <br/>
+<p>Return to <a href="/">home</a>.</p>
   </div>
+</metal:main>

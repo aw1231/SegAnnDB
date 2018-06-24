@@ -834,7 +834,7 @@ def export_trackhub(request):
                  request.POST['long_label'] + '\ngenomesFile genomes.txt\nemail ' + md['user'])
     hubtxt.close()
     genomestxt = open('genomes.txt', 'w')
-    genomestxt.write('genome ' + request.POST['db'] + '\ntrackDB ' + request.POST['db'] + '/trackDb.txt')
+    genomestxt.write('genome ' + request.POST['db'] + '\ntrackDb ' + request.POST['db'] + '/trackDb.txt')
     genomestxt.close()
     os.mkdir(request.POST['db'])
     os.chdir(request.POST['db'])
@@ -875,7 +875,7 @@ def export_trackhub(request):
     else:
         usertrackhubslist.append(request.POST['short_label'])
     usertrackhubs.put(usertrackhubslist)
-    return HTTPFound(location=request.host_url+'/trackhub/'+request.POST['short_label']+'/')
+    return HTTPFound(location=request.host_url+'/trackhub_details/'+request.POST['short_label']+'/')
 
 
 @view_config(route_name="trackhub_export",
@@ -897,15 +897,28 @@ def trackhub_export_show(request):
              request_method="GET",
              renderer="templates/trackhub_details.pt")
 def trackhub_details(request):
+    userid = authenticated_userid(request)
     md = request.matchdict
     trackhub = db.Trackhub(md["short_name"])
     trackhublist = trackhub.get()
     info = {
         'profiles': trackhublist[1],
         'short_name': md["short_name"],
-        'long_name': trackhublist[0]
+        'long_name': trackhublist[0],
+        'user': userid
     }
     return info
+
+
+@view_config(route_name="trackhub_file",
+             request_method="GET")
+def trackhub_file(request):
+    md = request.matchdict
+    p = ''
+    for level in md["file"]:
+        p = p + "/" + level
+    return FileResponse(os.getcwd() + '/trackhubs/' + md["short_name"] + '/' + p)
+
 
 @view_config(route_name="trackhub_list",
              request_method="GET",

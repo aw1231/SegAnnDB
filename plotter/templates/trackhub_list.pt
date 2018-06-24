@@ -11,7 +11,7 @@
       <p>
       <div tal:repeat="t trackhubs">
         <td>
-        <a href="${url}/trackhub/${t}/">${t}</a>
+        <a href="${url}/trackhub_details/${t}/">${t}</a>
         </td>
       </div>
   </p>
