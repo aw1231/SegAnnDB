@@ -857,16 +857,16 @@ def export_trackhub(request):
         for d in dicts:
             d["user_id"] = md["user"]
             d["profile_id"] = x
-        tosavebed = respond_bed_csv('copies', "bed", pinfo, dicts, False).text
+        tosavebed = respond_bed_csv('breaks', "bed", pinfo, dicts, False).text
         bedfile = open(x+'.bed', 'w')
         bedfile.write(tosavebed)
         bedfile.close()
         subprocess.call(['bedToBigBed', x+'.bed', 'chrom.sizes', x+'.bigbed'])
         #os.remove(x+'.bed')
-        fun = getattr(pro, "segments")
+        fun = getattr(pro, "breaks")
         dicts = fun(md["user"])
-        pinfo["table"] = "segments"
-        pinfo["visibility"] = EXPORT_VISIBILITY["segments"]
+        pinfo["table"] = "breaks"
+        pinfo["visibility"] = EXPORT_VISIBILITY["breaks"]
         for d in dicts:
             d["user_id"] = md["user"]
             d["profile_id"] = x
@@ -908,13 +908,13 @@ def export_trackhub(request):
         bedgraph.write('\n'.join(bedgraphlist))
         bedgraph.close()
         subprocess.call(['bedGraphToBigWig',x+'.bedGraph','chrom.sizes',x+'.bigwig'])
-        os.remove(x+'.bedgraph')
+        os.remove(x+'.bedGraph')
     trackdbtxt = open('trackDb.txt', 'w')
     for x in request.POST['profile']:
         trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x+'.bigbed' + '\nshortLabel ' + request.POST['short_label'] +
-                         'bigbed\nlongLabel ' + request.POST['long_label'] + 'bigbed\ntype bigBed\n\n\n')
+                         'bigbed\nlongLabel ' + request.POST['long_label'] + 'bigbed\ntype bigBed\ncolor 0,253,0\n\n')
         trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x +'.bigwig' + '\nshortLabel ' + request.POST['short_label']+
-                         'bigwig\nlongLabel ' + request.POST['long_label'] + 'bigwig\ntype bigWig\n\n\n')
+                         'bigwig\nlongLabel ' + request.POST['long_label'] + 'bigwig\ntype bigWig\ncolor 0,0,0\n\n')
     trackdbtxt.close()
     os.chdir(olddir)
     trackhub = db.Trackhub(request.POST['short_label'])
