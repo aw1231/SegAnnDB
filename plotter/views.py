@@ -13,6 +13,9 @@ import os
 from datetime import datetime
 import json
 import subprocess
+from shutil import copy2
+import gzip
+import operator
 
 # I am trying to override the authenticated_userid function here
 # retrieve the cookie and return to the user
@@ -854,27 +857,76 @@ def export_trackhub(request):
         for d in dicts:
             d["user_id"] = md["user"]
             d["profile_id"] = x
-        tosave = respond_bed_csv('breaks', "bed", pinfo, dicts).text
+        tosavebed = respond_bed_csv('copies', "bed", pinfo, dicts, False).text
         bedfile = open(x+'.bed', 'w')
-        bedfile.write(tosave)
+        bedfile.write(tosavebed)
         bedfile.close()
         subprocess.call(['bedToBigBed', x+'.bed', 'chrom.sizes', x+'.bigbed'])
-        os.remove(x+'.bed')
+        #os.remove(x+'.bed')
+        fun = getattr(pro, "segments")
+        dicts = fun(md["user"])
+        pinfo["table"] = "segments"
+        pinfo["visibility"] = EXPORT_VISIBILITY["segments"]
+        for d in dicts:
+            d["user_id"] = md["user"]
+            d["profile_id"] = x
+        bedgraphsecretfilelocation = db.secret_file(x+'.bedGraph.gz')
+        print bedgraphsecretfilelocation
+        copy2(bedgraphsecretfilelocation,os.getcwd()+'/'+x+'.bedGraph.gz')
+        gzipfile = gzip.open(os.getcwd()+'/'+x+'.bedGraph.gz')
+        bedgraphdata = gzipfile.read()
+        gzipfile.close()
+        os.remove(os.getcwd()+'/'+x+'.bedGraph.gz')
+        bedgraphlist = bedgraphdata.split('\n')[1:]
+        bedgraphlistcopy = []
+        for line in bedgraphlist:
+            if "chr0" in line or "chrXY" in line:
+                pass
+            else:
+                bedgraphlistcopy.append(line)
+        bedgraphlist = []
+        # https://stackoverflow.com/questions/9835762/how-do-i-find-the-duplicates-in-a-list-and-create-another-list-with-them/9835819#9835819
+        startlist = set()
+        for line in bedgraphlistcopy:
+            linelist = line.split('\t')
+            if linelist == ['']:
+                continue
+            if linelist[0]+linelist[1] in startlist:
+                continue
+            startlist.add(linelist[0]+linelist[1])
+            linelist[1] = int(linelist[1])
+            bedgraphlist.append(linelist)
+        # fancy sorting by: https://stackoverflow.com/questions/5212870/sorting-a-python-list-by-two-fields
+        bedgraphlist = sorted(bedgraphlist, key=operator.itemgetter(0, 1))
+        bedgraph = open(x+'.bedGraph','w')
+        bedgraphlistcopy = []
+        for sublist in bedgraphlist:
+            sublist[1] = str(sublist[1])
+            sublistjoined = '\t'.join(sublist)
+            bedgraphlistcopy.append(sublistjoined)
+        bedgraphlist = bedgraphlistcopy
+        bedgraph.write('\n'.join(bedgraphlist))
+        bedgraph.close()
+        subprocess.call(['bedGraphToBigWig',x+'.bedGraph','chrom.sizes',x+'.bigwig'])
+        os.remove(x+'.bedgraph')
     trackdbtxt = open('trackDb.txt', 'w')
     for x in request.POST['profile']:
         trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x+'.bigbed' + '\nshortLabel ' + request.POST['short_label'] +
-                         '\nlongLabel ' + request.POST['long_label'] + '\ntype bigBed\n\n\n')
+                         'bigbed\nlongLabel ' + request.POST['long_label'] + 'bigbed\ntype bigBed\n\n\n')
+        trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x +'.bigwig' + '\nshortLabel ' + request.POST['short_label']+
+                         'bigwig\nlongLabel ' + request.POST['long_label'] + 'bigwig\ntype bigWig\n\n\n')
     trackdbtxt.close()
     os.chdir(olddir)
     trackhub = db.Trackhub(request.POST['short_label'])
-    trackhub.put([request.POST['long_label'],request.POST['profile']])
-    usertrackhubs = db.User_Trackhubs(md["user"])
-    usertrackhubslist = usertrackhubs.get()
-    if usertrackhubslist == None:
-        usertrackhubslist = [request.POST['short_label']]
+    trackhub.put({
+        "long_label": request.POST['long_label'],
+        "profiles": request.POST['profile']})
+    usertrackhubs = db.UserTrackhubs(md["user"]).make_details()
+    if usertrackhubs == None:
+        usertrackhubs = [request.POST['short_label']]
     else:
-        usertrackhubslist.append(request.POST['short_label'])
-    usertrackhubs.put(usertrackhubslist)
+        usertrackhubs.append(request.POST['short_label'])
+    db.UserTrackhubs(md["user"]).put(usertrackhubs)
     return HTTPFound(location=request.host_url+'/trackhub_details/'+request.POST['short_label']+'/')
 
 
@@ -893,18 +945,18 @@ def trackhub_export_show(request):
     }
     return info
 
+
 @view_config(route_name="trackhub_details",
              request_method="GET",
              renderer="templates/trackhub_details.pt")
 def trackhub_details(request):
     userid = authenticated_userid(request)
     md = request.matchdict
-    trackhub = db.Trackhub(md["short_name"])
-    trackhublist = trackhub.get()
+    trackhub = db.Trackhub(md["short_name"]).make_details()
     info = {
-        'profiles': trackhublist[1],
+        'profiles': trackhub["profiles"],
         'short_name': md["short_name"],
-        'long_name': trackhublist[0],
+        'long_name': trackhub["long_label"],
         'user': userid
     }
     return info
@@ -934,12 +986,13 @@ def trackhub_list(request):
     }
     return info
 
-def respond_bed_csv(table, fmt, hinfo, dicts):
+def respond_bed_csv(table, fmt, hinfo, dicts, header=True):
     response = Response(content_type="text/plain")
     tup = (table, fmt)
-    header_tmp = EXPORT_HEADERS[tup]
-    header = header_tmp % hinfo + '\n'
-    response.write(header)
+    if header:
+        header_tmp = EXPORT_HEADERS[tup]
+        header = header_tmp % hinfo + '\n'
+        response.write(header)
     fmt = EXPORT_FORMATS[tup]
     text = []
     for d in dicts:

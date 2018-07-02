@@ -43,6 +43,10 @@ cd utils/bedToBigBed
 make compile
 sudo cp bedToBigBed /usr/local/bin/
 cd ..
+cd bedGraphToBigWig
+make compile
+sudo cp bedGraphToBigWig /usr/local/bin/
+cd ..
 cd userApps
 make
 sudo cp fetchChromSizes /usr/local/bin/

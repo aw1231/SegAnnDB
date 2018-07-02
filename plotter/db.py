@@ -858,8 +858,18 @@ class Profile(Resource):
 class Trackhub(Resource):
     keys = ("short_name",)
 
-class User_Trackhubs(Resource):
+    def make_details(self):
+        if self.db_key not in self.db:
+            return None
+        return self.get()
+
+class UserTrackhubs(Resource):
     keys = ("trackhubs",)
+
+    def make_details(self):
+        if self.db_key not in self.db:
+            return None
+        return self.get()
 
 class Models(Resource):
     keys = ("name", "chr")
