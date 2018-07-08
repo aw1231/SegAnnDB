@@ -35,24 +35,17 @@ if [ "$TRAVIS" = "true" ]; then
 else
     cd
 fi
-wget http://hgdownload.cse.ucsc.edu/admin/exe/userApps.src.tgz
-tar -xzf userApps.src.tgz
-cd userApps/kent/src
-make libs
-cd utils/bedToBigBed
-make compile
+mkdir kent
+cd kent
+if [ uname != "Darwin" ]; then
+    rsync -a -P rsync://hgdownload.soe.ucsc.edu/genome/admin/exe/linux.x86_64/bedToBigBed ./
+    rsync -a -P rsync://hgdownload.soe.ucsc.edu/genome/admin/exe/linux.x86_64/bedGraphToBigWig ./
+else
+    rsync -a -P rsync://hgdownload.soe.ucsc.edu/genome/admin/exe/macOSX.x86_64/bedToBigBed ./
+    rsync -a -P rsync://hgdownload.soe.ucsc.edu/genome/admin/exe/macOSX.x86_64/bedGraphToBigWig ./
+fi
 sudo cp bedToBigBed /usr/local/bin/
-cd ..
-cd bedGraphToBigWig
-make compile
 sudo cp bedGraphToBigWig /usr/local/bin/
-cd ..
-cd userApps
-make
-sudo cp fetchChromSizes /usr/local/bin/
-cd ../../../../..
-sudo rm -r userApps
-sudo rm userApps.src.tgz
 
 # for an apache web server
 sudo apt-get install apache2 libapache2-mod-wsgi

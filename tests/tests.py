@@ -89,7 +89,7 @@ class SegAnnTest(unittest.TestCase):
         This all happens on the test uploaded profile
         """
 
-        print "Test #4 for testing annotation"
+        print "Test#4 for testing annotation"
 
         # we need to give some time for profile processing before we can make
         # annotations
@@ -123,11 +123,68 @@ class SegAnnTest(unittest.TestCase):
 
         del_resp.close()
 
-    def test050_delete(self):
+    def test050_trackhub(self):
+        print "Test#5 Trackhub Creation Test"
+        driver = self.driver
+        driver.get("http://127.0.0.1:8080/")
+        self.login(driver)
+
+        # make sure that we are logged in
+        wait = WebDriverWait(driver, 60)
+        assert wait.until(
+            EC.element_to_be_clickable((By.ID, "signout"))).is_displayed()
+        driver.get("http://127.0.0.1:8080/trackhub_init/seganntest2@gmail.com/")
+        shortname_field = driver.find_element_by_id("id_short_label")
+        shortname_field.send_keys("test1")
+        longname_field = driver.find_element_by_id("id_long_label")
+        longname_field.send_keys("test1long")
+        db_field = driver.find_element_by_id("id_db")
+        db_field.send_keys("hg19")
+        profile_box = driver.find_element_by_xpath("//input[@value='ES0004']")
+        profile_box.click()
+        submit_button = driver.find_element_by_id("submit_button")
+        submit_button.click()
+        sleep(10)
+        if ("Trackhub data for test1" in driver.page_source):
+            assert True
+        else:
+            assert False
+
+    def test060_no_header(self):
+        """
+        This test checks if header non-creation is properly done.
+        It also performs no login to simulate UCSC access.
+        """
+        print "Test#6 Non-Header export test"
+        bedfile = urllib2.urlopen('http://127.0.0.1:8080/trackhub/test1/hg19/ES0004.bed')
+        if ("track" in bedfile.read()):
+            assert False
+        else:
+            assert True
+
+    def test070_header(self):
+        """
+        This checks that file header creation occurs by default
+        """
+        print "Test#7 Header export test"
+        driver = self.driver
+        driver.get("http://127.0.0.1:8080/")
+        self.login(driver)
+        # make sure that we are logged in
+        wait = WebDriverWait(driver, 60)
+        assert wait.until(
+            EC.element_to_be_clickable((By.ID, "signout"))).is_displayed()
+        driver.get("http://127.0.0.1:8080/export/seganntest2@gmail.com/ES0004/breaks/bed/")
+        if ("track" in driver.page_source):
+            assert True
+        else:
+            assert False
+
+    def test080_delete(self):
         """
         This test is for checking if we are able to delete the uploaded profile
         """
-        print "Test#5 Profile Deleting test."
+        print "Test#8 Profile Deleting test."
         driver = self.driver
         driver.get("http://127.0.0.1:8080/")
         self.login(driver)
@@ -156,21 +213,21 @@ class SegAnnTest(unittest.TestCase):
         Parameters:
             driver - reference to driver being used
         """
-	#check if cookie file exists and is up to date
-	import os.path
-	if os.path.isfile('cookies.txt'):
-		fr = open('cookies.txt')
-		cookies = eval(fr.read())
-		for cookie in cookies:
-			if cookie["domain"] == "localhost" or cookie["domain"] == "127.0.0.1":
-				driver.get("http://127.0.0.1:8080/")
-				cookie["domain"] = "127.0.0.1"
-				driver.add_cookie(cookie)
-				driver.get("http://127.0.0.1:8080/")
-		return
-	# no usable cookie/cookie.txt, therefore let's switch back to localhost to get a cookie first
-	driver.get("http://localhost:8080/")
-	# this is the tricky part
+        # check if cookie file exists and is up to date
+        import os.path
+        if os.path.isfile('cookies.txt'):
+            fr = open('cookies.txt')
+            cookies = eval(fr.read())
+            for cookie in cookies:
+                if cookie["domain"] == "localhost" or cookie["domain"] == "127.0.0.1":
+                    driver.get("http://127.0.0.1:8080/")
+                    cookie["domain"] = "127.0.0.1"
+                    driver.add_cookie(cookie)
+                    driver.get("http://127.0.0.1:8080/")
+            return
+        # no usable cookie/cookie.txt, therefore let's switch back to localhost to get a cookie first
+        driver.get("http://localhost:8080/")
+        # this is the tricky part
         # We have to get the right handle for the correct popup login window
         main_window_handle = driver.current_window_handle
 
@@ -185,18 +242,18 @@ class SegAnnTest(unittest.TestCase):
         # iterating through all the handles to get the popup, since we only hve
         # one popup, making use of that
         # while not signin_window_handle:
-            # for handle in driver.window_handles:
-                # if handle != main_window_handle:
-                    # signin_window_handle = handle
-                    # break
+        # for handle in driver.window_handles:
+        # if handle != main_window_handle:
+        # signin_window_handle = handle
+        # break
 
         # switch to the signin popup
         # driver.switch_to.window(signin_window_handle)
 
         # xpath id obtained using firebug for the next button on persona dialog
         # (driver.find_element_by_xpath(
-            # "/html/body/div/section[1]/form/div[2]/div[1]/div/div[2]/p[4]/button[1]")
-            # .click())
+        # "/html/body/div/section[1]/form/div[2]/div[1]/div/div[2]/p[4]/button[1]")
+        # .click())
 
         # switch to the main window
         # driver.switch_to.window(main_window_handle)
@@ -207,19 +264,19 @@ class SegAnnTest(unittest.TestCase):
 
         # enter the email of test user
         email_field.send_keys("seganntest2@gmail.com")
-	sleep(10)
+        sleep(10)
         # click next
         driver.find_element_by_id('identifierNext').click()
-	sleep(10)
+        sleep(10)
         # enter password
-        wait.until(EC.presence_of_element_located((By.NAME, "password"))).send_keys('segann@test',Keys.RETURN)
-	wait = WebDriverWait(driver, 60)
+        wait.until(EC.presence_of_element_located((By.NAME, "password"))).send_keys('segann@test', Keys.RETURN)
+        wait = WebDriverWait(driver, 60)
         assert wait.until(
             EC.element_to_be_clickable((By.ID, "signout"))).is_displayed()  # This check is important so we get the localhost cookie
         cookies = driver.get_cookies()
-        fw = open('cookies.txt','w')
-	fw.write(str(cookies))
-	fw.close()
+        fw = open('cookies.txt', 'w')
+        fw.write(str(cookies))
+        fw.close()
 
     def tearDown(self):
         self.driver.close()

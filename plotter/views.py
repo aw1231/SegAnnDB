@@ -918,15 +918,14 @@ def export_trackhub(request):
     trackdbtxt.close()
     os.chdir(olddir)
     trackhub = db.Trackhub(request.POST['short_label'])
-    trackhub.put({
-        "long_label": request.POST['long_label'],
-        "profiles": request.POST['profile']})
-    usertrackhubs = db.UserTrackhubs(md["user"]).make_details()
-    if usertrackhubs == None:
-        usertrackhubs = [request.POST['short_label']]
-    else:
-        usertrackhubs.append(request.POST['short_label'])
-    db.UserTrackhubs(md["user"]).put(usertrackhubs)
+    trackhubdata = trackhub.get()
+    trackhubdata['long_label'] = request.POST['long_label']
+    trackhubdata['profiles'] = request.POST['profile']
+    trackhub.put(trackhubdata)
+    usertrackhubs = db.UserTrackhubs(md["user"])
+    usertrackhubsdata = usertrackhubs.get()
+    usertrackhubsdata.append(request.POST['short_label'])
+    usertrackhubs.put(usertrackhubsdata)
     return HTTPFound(location=request.host_url+'/trackhub_details/'+request.POST['short_label']+'/')
 
 
@@ -952,7 +951,7 @@ def trackhub_export_show(request):
 def trackhub_details(request):
     userid = authenticated_userid(request)
     md = request.matchdict
-    trackhub = db.Trackhub(md["short_name"]).make_details()
+    trackhub = db.Trackhub(md["short_name"]).get()
     info = {
         'profiles': trackhub["profiles"],
         'short_name': md["short_name"],
@@ -969,7 +968,7 @@ def trackhub_file(request):
     p = ''
     for level in md["file"]:
         p = p + "/" + level
-    return FileResponse(os.getcwd() + '/trackhubs/' + md["short_name"] + '/' + p)
+    return FileResponse(os.getcwd() + '/trackhubs/' + md["short_name"] + p)
 
 
 @view_config(route_name="trackhub_list",
@@ -977,7 +976,7 @@ def trackhub_file(request):
              renderer="templates/trackhub_list.pt")
 def trackhub_list(request):
     md = request.matchdict
-    trackhubs = db.User_Trackhubs(md["user"])
+    trackhubs = db.UserTrackhubs(md["user"])
     trackhubslist = trackhubs.get()
     info = {
         'url': request.host_url,

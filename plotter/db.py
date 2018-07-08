@@ -859,17 +859,13 @@ class Trackhub(Resource):
     keys = ("short_name",)
 
     def make_details(self):
-        if self.db_key not in self.db:
-            return None
-        return self.get()
+        return {}
 
 class UserTrackhubs(Resource):
     keys = ("trackhubs",)
 
     def make_details(self):
-        if self.db_key not in self.db:
-            return None
-        return self.get()
+        return []
 
 class Models(Resource):
     keys = ("name", "chr")
