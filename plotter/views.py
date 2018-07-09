@@ -842,7 +842,9 @@ def export_trackhub(request):
     os.mkdir(request.POST['db'])
     os.chdir(request.POST['db'])
     chromsizes = open('chrom.sizes', 'w')
-    subprocess.call(['fetchChromSizes', request.POST['db']], stdout=chromsizes)
+    copy2(db.CHROMLENGTH_DIR + '/' + request.POST['db'] + '.txt.gz', os.getcwd() + '/chrom.sizes.gz')
+    gzipsizefile = gzip.open(os.getcwd() + '/chrom.sizes.gz')
+    chromsizes.write(gzipsizefile.read())
     chromsizes.close()
     if isinstance(request.POST['profile'], basestring):
         request.POST['profile'] = [request.POST['profile']]
