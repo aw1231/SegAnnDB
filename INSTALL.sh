@@ -46,7 +46,6 @@ else
 fi
 sudo cp bedToBigBed /usr/local/bin/
 sudo cp bedGraphToBigWig /usr/local/bin/
-sudo cp fetchChromSizes /usr/local/bin/
 
 # for an apache web server
 sudo apt-get install apache2 libapache2-mod-wsgi
