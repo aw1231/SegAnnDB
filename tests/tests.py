@@ -242,18 +242,18 @@ class SegAnnTest(unittest.TestCase):
         # iterating through all the handles to get the popup, since we only hve
         # one popup, making use of that
         # while not signin_window_handle:
-        # for handle in driver.window_handles:
-        # if handle != main_window_handle:
-        # signin_window_handle = handle
-        # break
+            # for handle in driver.window_handles:
+                # if handle != main_window_handle:
+                    # signin_window_handle = handle
+                    # break
 
         # switch to the signin popup
         # driver.switch_to.window(signin_window_handle)
 
         # xpath id obtained using firebug for the next button on persona dialog
         # (driver.find_element_by_xpath(
-        # "/html/body/div/section[1]/form/div[2]/div[1]/div/div[2]/p[4]/button[1]")
-        # .click())
+            # "/html/body/div/section[1]/form/div[2]/div[1]/div/div[2]/p[4]/button[1]")
+            # .click())
 
         # switch to the main window
         # driver.switch_to.window(main_window_handle)
