@@ -869,6 +869,8 @@ def export_trackhub(request):
     gzipsizefile = gzip.open(os.getcwd() + '/chrom.sizes.gz')
     chromsizes.write(gzipsizefile.read())
     chromsizes.close()
+    os.remove("chrom.sizes.gz")
+    usedlist = []
     if isinstance(request.POST['profile'], basestring):
         request.POST['profile'] = [request.POST['profile']]
     for x in request.POST['profile']:
@@ -899,7 +901,10 @@ def export_trackhub(request):
             bedfile = open(x+"_"+datatype+'.bed', 'w')
             bedfile.write(tosavebed)
             bedfile.close()
+            usedlist.append(datatype)
             subprocess.call(['bedToBigBed', x+"_"+datatype+'.bed', 'chrom.sizes', x+"_"+datatype+'.bigbed'])
+            if x != "ES0004":
+                os.remove(x+"_"+datatype+'.bed')
         bedgraphsecretfilelocation = db.secret_file(x+'.bedGraph.gz')
         copy2(bedgraphsecretfilelocation,os.getcwd()+'/'+x+'.bedGraph.gz')
         gzipfile = gzip.open(os.getcwd()+'/'+x+'.bedGraph.gz')
@@ -911,12 +916,12 @@ def export_trackhub(request):
         bedgraph.write(bedgraphdata)
         bedgraph.close()
         subprocess.call(['bedGraphToBigWig',x+'.bedGraph','chrom.sizes',x+'.bigwig'])
-        #os.remove(x+'.bedGraph')
+        os.remove(x+'.bedGraph')
     trackdbtxt = open('trackDb.txt', 'w')
     for x in request.POST['profile']:
-        for datatype in ["breaks", "regions", "copies"]:
+        for datatype in usedlist:
             trackdbtxt.write('track ' + x + "_" + datatype + '\nbigDataUrl ' + x+datatype+'.bigbed' + '\nshortLabel ' +
-                request.POST['short_label'] + 'bigbed\nlongLabel ' + request.POST['long_label'] + 'bigbed\ntype bigBed\ncolor 0,253,0\n\n')
+                request.POST['short_label'] + datatype + '\nlongLabel ' + request.POST['long_label'] + datatype + '\ntype bigBed\ncolor 0,253,0\n\n')
         trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x +'.bigwig' + '\nshortLabel ' + request.POST['short_label']+
             'bigwig\nlongLabel ' + request.POST['long_label'] + 'bigwig\ntype bigWig\ncolor 0,0,0\n\n')
     trackdbtxt.close()
