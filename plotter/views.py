@@ -631,8 +631,31 @@ def upload_profile_user_file(userid, upload):
     f.seek(0)
     out_name = db.secret_file("%(name)s.bedGraph.gz" % info)
     saved = gzip.open(out_name, "w")
+    saved.write(header)
+    # https://stackoverflow.com/questions/9835762/how-do-i-find-the-duplicates-in-a-list-and-create-another-list-with-them/9835819#9835819
+    probelist = set()
+    deduplist = []
+    finallist = []
     for data in f:
-        saved.write(data)
+        if data != header:
+            linelist = data.split('\t')
+            if linelist == ['']:
+                continue
+            if len(linelist) >= 2:
+                if linelist[0][3:] not in cl.keys():
+                    continue #removes invalid chromosomes
+                if linelist[0] + linelist[1] in probelist:  # removes duplicates
+                    continue
+                probelist.add(linelist[0] + linelist[1])
+                linelist[1] = int(linelist[1])
+                deduplist.append(linelist)
+            # fancy sorting by: https://stackoverflow.com/questions/5212870/sorting-a-python-list-by-two-fields
+    sortedlist = sorted(deduplist, key=operator.itemgetter(0, 1))
+    for sublist in sortedlist:
+        sublist[1] = str(sublist[1])
+        finalline = '\t'.join(sublist)
+        finallist.append(finalline)
+    saved.write('\n'.join(finallist))
     saved.close()
     # add profile to user lists.
     uprofs = [db.UserProfiles(u) for u in db_users]
@@ -850,73 +873,52 @@ def export_trackhub(request):
         request.POST['profile'] = [request.POST['profile']]
     for x in request.POST['profile']:
         pro = db.Profile(x)
-        fun = getattr(pro, "breaks")
-        # need to
-        dicts = fun(md["user"])
         pinfo = pro.get()
-        pinfo["table"] = "breaks"
-        pinfo["visibility"] = EXPORT_VISIBILITY["breaks"]
-        for d in dicts:
-            d["user_id"] = md["user"]
-            d["profile_id"] = x
-        tosavebed = respond_bed_csv('breaks', "bed", pinfo, dicts, False).text
-        bedfile = open(x+'.bed', 'w')
-        bedfile.write(tosavebed)
-        bedfile.close()
-        subprocess.call(['bedToBigBed', x+'.bed', 'chrom.sizes', x+'.bigbed'])
-        #os.remove(x+'.bed')
-        fun = getattr(pro, "breaks")
-        dicts = fun(md["user"])
-        pinfo["table"] = "breaks"
-        pinfo["visibility"] = EXPORT_VISIBILITY["breaks"]
-        for d in dicts:
-            d["user_id"] = md["user"]
-            d["profile_id"] = x
+        for datatype in ["breaks", "regions", "copies"]:
+            fun = getattr(pro, datatype)
+            # need to
+            dicts = fun(md["user"])
+            pinfo["table"] = datatype
+            pinfo["visibility"] = EXPORT_VISIBILITY[datatype]
+            for d in dicts:
+                d["user_id"] = md["user"]
+                d["profile_id"] = x
+            tosplitbed = respond_bed_csv(datatype, "bed", pinfo, dicts, False).text
+            if tosplitbed == '':
+                continue
+            tosplitbedlist = tosplitbed.split('\n')
+            tosortbedlist = []
+            for line in tosplitbedlist:
+                if line != '':
+                    tosortbedlist.append(line.split(' '))
+            tounsplitbedlist = sorted(tosortbedlist,key=lambda lambdaline: (unicode(lambdaline[0]), int(lambdaline[1])))
+            unsplitbedlist = []
+            for line in tounsplitbedlist:
+                unsplitbedlist.append('\t'.join(line))
+            tosavebed = '\n'.join(unsplitbedlist)
+            bedfile = open(x+"_"+datatype+'.bed', 'w')
+            bedfile.write(tosavebed)
+            bedfile.close()
+            subprocess.call(['bedToBigBed', x+"_"+datatype+'.bed', 'chrom.sizes', x+"_"+datatype+'.bigbed'])
         bedgraphsecretfilelocation = db.secret_file(x+'.bedGraph.gz')
-        print bedgraphsecretfilelocation
         copy2(bedgraphsecretfilelocation,os.getcwd()+'/'+x+'.bedGraph.gz')
         gzipfile = gzip.open(os.getcwd()+'/'+x+'.bedGraph.gz')
+        gzipfile.next()
         bedgraphdata = gzipfile.read()
         gzipfile.close()
         os.remove(os.getcwd()+'/'+x+'.bedGraph.gz')
-        bedgraphlist = bedgraphdata.split('\n')[1:]
-        bedgraphlistcopy = []
-        for line in bedgraphlist:
-            if "chr0" in line or "chrXY" in line:
-                pass
-            else:
-                bedgraphlistcopy.append(line)
-        bedgraphlist = []
-        # https://stackoverflow.com/questions/9835762/how-do-i-find-the-duplicates-in-a-list-and-create-another-list-with-them/9835819#9835819
-        startlist = set()
-        for line in bedgraphlistcopy:
-            linelist = line.split('\t')
-            if linelist == ['']:
-                continue
-            if linelist[0]+linelist[1] in startlist:
-                continue
-            startlist.add(linelist[0]+linelist[1])
-            linelist[1] = int(linelist[1])
-            bedgraphlist.append(linelist)
-        # fancy sorting by: https://stackoverflow.com/questions/5212870/sorting-a-python-list-by-two-fields
-        bedgraphlist = sorted(bedgraphlist, key=operator.itemgetter(0, 1))
         bedgraph = open(x+'.bedGraph','w')
-        bedgraphlistcopy = []
-        for sublist in bedgraphlist:
-            sublist[1] = str(sublist[1])
-            sublistjoined = '\t'.join(sublist)
-            bedgraphlistcopy.append(sublistjoined)
-        bedgraphlist = bedgraphlistcopy
-        bedgraph.write('\n'.join(bedgraphlist))
+        bedgraph.write(bedgraphdata)
         bedgraph.close()
         subprocess.call(['bedGraphToBigWig',x+'.bedGraph','chrom.sizes',x+'.bigwig'])
-        os.remove(x+'.bedGraph')
+        #os.remove(x+'.bedGraph')
     trackdbtxt = open('trackDb.txt', 'w')
     for x in request.POST['profile']:
-        trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x+'.bigbed' + '\nshortLabel ' + request.POST['short_label'] +
-                         'bigbed\nlongLabel ' + request.POST['long_label'] + 'bigbed\ntype bigBed\ncolor 0,253,0\n\n')
+        for datatype in ["breaks", "regions", "copies"]:
+            trackdbtxt.write('track ' + x + "_" + datatype + '\nbigDataUrl ' + x+datatype+'.bigbed' + '\nshortLabel ' +
+                request.POST['short_label'] + 'bigbed\nlongLabel ' + request.POST['long_label'] + 'bigbed\ntype bigBed\ncolor 0,253,0\n\n')
         trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x +'.bigwig' + '\nshortLabel ' + request.POST['short_label']+
-                         'bigwig\nlongLabel ' + request.POST['long_label'] + 'bigwig\ntype bigWig\ncolor 0,0,0\n\n')
+            'bigwig\nlongLabel ' + request.POST['long_label'] + 'bigwig\ntype bigWig\ncolor 0,0,0\n\n')
     trackdbtxt.close()
     os.chdir(olddir)
     trackhub = db.Trackhub(request.POST['short_label'])

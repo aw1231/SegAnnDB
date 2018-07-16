@@ -26,7 +26,7 @@ class SegAnnTest(unittest.TestCase):
         Test#1
         This test is for checking whether the page is loading or not
         """
-        print "Test#1 isSegAnnUp ?"
+        print "Test#1 isSegAnnUp?"
         driver = self.driver
         driver.get("http://127.0.0.1:8080")
         assert "SegAnnDB" in driver.title
@@ -156,7 +156,7 @@ class SegAnnTest(unittest.TestCase):
         It also performs no login to simulate UCSC access.
         """
         print "Test#6 Non-Header export test"
-        bedfile = urllib2.urlopen('http://127.0.0.1:8080/trackhub/test1/hg19/ES0004.bed')
+        bedfile = urllib2.urlopen('http://127.0.0.1:8080/trackhub/test1/hg19/ES0004_breaks.bed')
         if ("track" in bedfile.read()):
             assert False
         else:
