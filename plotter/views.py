@@ -920,7 +920,7 @@ def export_trackhub(request):
     trackdbtxt = open('trackDb.txt', 'w')
     for x in request.POST['profile']:
         for datatype in usedlist:
-            trackdbtxt.write('track ' + x + "_" + datatype + '\nbigDataUrl ' + x+datatype+'.bigbed' + '\nshortLabel ' +
+            trackdbtxt.write('track ' + x + "_" + datatype + '\nbigDataUrl ' + x+'_'+datatype+'.bigbed' + '\nshortLabel ' +
                 request.POST['short_label'] + datatype + '\nlongLabel ' + request.POST['long_label'] + datatype + '\ntype bigBed\ncolor 0,253,0\n\n')
         trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x +'.bigwig' + '\nshortLabel ' + request.POST['short_label']+
             'bigwig\nlongLabel ' + request.POST['long_label'] + 'bigwig\ntype bigWig\ncolor 0,0,0\n\n')
