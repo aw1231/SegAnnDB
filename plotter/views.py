@@ -876,7 +876,7 @@ def export_trackhub(request):
     for x in request.POST['profile']:
         pro = db.Profile(x)
         pinfo = pro.get()
-        for datatype in ["breaks", "regions", "copies"]:
+        for datatype in ["breaks", "regions", "copies", "segments"]:
             fun = getattr(pro, datatype)
             # need to
             dicts = fun(md["user"])
@@ -885,7 +885,10 @@ def export_trackhub(request):
             for d in dicts:
                 d["user_id"] = md["user"]
                 d["profile_id"] = x
-            tosplitbed = respond_bed_csv(datatype, "bed", pinfo, dicts, False).text
+            if datatype != "segments":
+                tosplitbed = respond_bed_csv(datatype, "bed", pinfo, dicts, False).text
+            else:
+                tosplitbed = respond_bed_csv(datatype,"bedGraph", pinfo,dicts, False).text
             if tosplitbed == '':
                 continue
             tosplitbedlist = tosplitbed.split('\n')
@@ -898,13 +901,21 @@ def export_trackhub(request):
             for line in tounsplitbedlist:
                 unsplitbedlist.append('\t'.join(line))
             tosavebed = '\n'.join(unsplitbedlist)
-            bedfile = open(x+"_"+datatype+'.bed', 'w')
+            if datatype != "segments":
+                bedfile = open(x+"_"+datatype+'.bed', 'w')
+            else:
+                bedfile = open(x+"_"+datatype+'.bedGraph','w')
             bedfile.write(tosavebed)
             bedfile.close()
             usedlist.append(datatype)
-            subprocess.call(['bedToBigBed', x+"_"+datatype+'.bed', 'chrom.sizes', x+"_"+datatype+'.bigbed'])
-            if x != "ES0004":
+            if datatype != "segments":
+                subprocess.call(['bedToBigBed', x+"_"+datatype+'.bed', 'chrom.sizes', x+"_"+datatype+'.bigbed'])
+            else:
+                subprocess.call(['bedGraphToBigWig', x + "_segments.bedGraph", 'chrom.sizes', x + "_segments.bigWig"])
+            if x != "ES0004" and datatype != "segments":
                 os.remove(x+"_"+datatype+'.bed')
+            elif x != "ES0004":
+                os.remove(x+"_segments.bedGraph")
         bedgraphsecretfilelocation = db.secret_file(x+'.bedGraph.gz')
         copy2(bedgraphsecretfilelocation,os.getcwd()+'/'+x+'.bedGraph.gz')
         gzipfile = gzip.open(os.getcwd()+'/'+x+'.bedGraph.gz')
@@ -915,15 +926,20 @@ def export_trackhub(request):
         bedgraph = open(x+'.bedGraph','w')
         bedgraph.write(bedgraphdata)
         bedgraph.close()
-        subprocess.call(['bedGraphToBigWig',x+'.bedGraph','chrom.sizes',x+'.bigwig'])
+        subprocess.call(['bedGraphToBigWig',x+'.bedGraph','chrom.sizes',x+'.bigWig'])
         os.remove(x+'.bedGraph')
     trackdbtxt = open('trackDb.txt', 'w')
     for x in request.POST['profile']:
+        trackdbtxt.write('track ' + x + 'multiWig\ntype bigWig\ncontainer multiWig\naggregate transparentOverlay\nshortLabel ' + request.POST['short_label'] + 'multiWig\nlongLabel ' +
+                         request.POST['long_label'] + 'multiWig\nautoScale on\nnegativeValues on\n\n\n')
         for datatype in usedlist:
-            trackdbtxt.write('track ' + x + "_" + datatype + '\nbigDataUrl ' + x+'_'+datatype+'.bigbed' + '\nshortLabel ' +
-                request.POST['short_label'] + datatype + '\nlongLabel ' + request.POST['long_label'] + datatype + '\ntype bigBed\ncolor 0,253,0\n\n')
-        trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x +'.bigwig' + '\nshortLabel ' + request.POST['short_label']+
-            'bigwig\nlongLabel ' + request.POST['long_label'] + 'bigwig\ntype bigWig\ncolor 0,0,0\n\n')
+            if datatype != "segments":
+                trackdbtxt.write('track ' + x + "_" + datatype + '\nbigDataUrl ' + x+'_'+datatype+'.bigbed' + '\nshortLabel ' +
+                    request.POST['short_label'] + datatype + '\nlongLabel ' + request.POST['long_label'] + datatype + '\ntype bigBed\ncolor 0,253,0\n\n')
+        trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x +'.bigWig' + '\nshortLabel ' + request.POST['short_label']+
+            'bigwig\nlongLabel ' + request.POST['long_label'] + 'bigwig\ntype bigWig\ncolor 0,0,0\nparent ' + x + 'multiWig\nautoScale on\nnegativeValues on\ngraphTypeDefault points\n\n')
+        trackdbtxt.write('track ' + x + '_segments\nbigDataUrl ' + x + '_segments.bigWig' + '\nshortLabel ' + request.POST['short_label'] +
+            'segments\nlongLabel ' + request.POST['long_label'] + 'segments\ntype bigWig\ncolor 0,253,0\nparent ' + x + 'multiWig\nautoscale on\nnegativeValues on\n\n')
     trackdbtxt.close()
     os.chdir(olddir)
     trackhub = db.Trackhub(request.POST['short_label'])
