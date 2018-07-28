@@ -861,11 +861,13 @@ class Trackhub(Resource):
     def make_details(self):
         return {}
 
+
 class UserTrackhubs(Resource):
     keys = ("trackhubs",)
 
     def make_details(self):
         return []
+
 
 class Models(Resource):
     keys = ("name", "chr")

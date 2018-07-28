@@ -643,7 +643,7 @@ def upload_profile_user_file(userid, upload):
                 continue
             if len(linelist) >= 2:
                 if linelist[0][3:] not in cl.keys():
-                    continue #removes invalid chromosomes
+                    continue  # removes invalid chromosomes
                 if linelist[0] + linelist[1] in probelist:  # removes duplicates
                     continue
                 probelist.add(linelist[0] + linelist[1])
@@ -888,7 +888,7 @@ def export_trackhub(request):
             if datatype != "segments":
                 tosplitbed = respond_bed_csv(datatype, "bed", pinfo, dicts, False).text
             else:
-                tosplitbed = respond_bed_csv(datatype,"bedGraph", pinfo,dicts, False).text
+                tosplitbed = respond_bed_csv(datatype, "bedGraph", pinfo, dicts, False).text
             if tosplitbed == '':
                 continue
             tosplitbedlist = tosplitbed.split('\n')
@@ -896,7 +896,7 @@ def export_trackhub(request):
             for line in tosplitbedlist:
                 if line != '':
                     tosortbedlist.append(line.split(' '))
-            tounsplitbedlist = sorted(tosortbedlist,key=lambda lambdaline: (unicode(lambdaline[0]), int(lambdaline[1])))
+            tounsplitbedlist = sorted(tosortbedlist, key=lambda lambdaline: (unicode(lambdaline[0]), int(lambdaline[1])))
             unsplitbedlist = []
             for line in tounsplitbedlist:
                 unsplitbedlist.append('\t'.join(line))
@@ -904,7 +904,7 @@ def export_trackhub(request):
             if datatype != "segments":
                 bedfile = open(x+"_"+datatype+'.bed', 'w')
             else:
-                bedfile = open(x+"_"+datatype+'.bedGraph','w')
+                bedfile = open(x+"_"+datatype+'.bedGraph', 'w')
             bedfile.write(tosavebed)
             bedfile.close()
             usedlist.append(datatype)
@@ -917,32 +917,36 @@ def export_trackhub(request):
             elif x != "ES0004":
                 os.remove(x+"_segments.bedGraph")
         bedgraphsecretfilelocation = db.secret_file(x+'.bedGraph.gz')
-        copy2(bedgraphsecretfilelocation,os.getcwd()+'/'+x+'.bedGraph.gz')
+        copy2(bedgraphsecretfilelocation, os.getcwd()+'/'+x+'.bedGraph.gz')
         gzipfile = gzip.open(os.getcwd()+'/'+x+'.bedGraph.gz')
         gzipfile.next()
         bedgraphdata = gzipfile.read()
         gzipfile.close()
         os.remove(os.getcwd()+'/'+x+'.bedGraph.gz')
-        bedgraph = open(x+'.bedGraph','w')
+        bedgraph = open(x+'.bedGraph', 'w')
         bedgraph.write(bedgraphdata)
         bedgraph.close()
-        subprocess.call(['bedGraphToBigWig',x+'.bedGraph','chrom.sizes',x+'.bigWig'])
+        subprocess.call(['bedGraphToBigWig', x+'.bedGraph', 'chrom.sizes', x+'.bigWig'])
         os.remove(x+'.bedGraph')
     trackdbtxt = open('trackDb.txt', 'w')
     for x in request.POST['profile']:
-        trackdbtxt.write('track ' + x + 'multiWig\ntype bigWig\ncontainer multiWig\naggregate transparentOverlay\nshortLabel ' + request.POST['short_label'] + 'multiWig\nlongLabel ' +
+        trackdbtxt.write('track ' + x + 'multiWig\ntype bigWig\ncontainer multiWig\naggregate transparentOverlay\n' +
+                         'shortLabel ' + request.POST['short_label'] + 'multiWig\nlongLabel ' +
                          request.POST['long_label'] + 'multiWig\nautoScale on\nnegativeValues on\nalwaysZero on\n\n')
         for datatype in usedlist:
             if datatype != "segments":
-                trackdbtxt.write('track ' + x + "_" + datatype + '\nbigDataUrl ' + x+'_'+datatype+'.bigbed' + '\nshortLabel ' +
-                    request.POST['short_label'] + datatype + '\nlongLabel ' + request.POST['long_label'] + datatype + '\ntype bigBed\ncolor 0,253,0' +
+                trackdbtxt.write('track ' + x + "_" + datatype + '\nbigDataUrl ' + x+'_'+datatype+'.bigbed' +
+                                 '\nshortLabel ' + request.POST['short_label'] + datatype + '\nlongLabel ' +
+                                 request.POST['long_label'] + datatype + '\ntype bigBed\ncolor 0,253,0' +
                                  '\nalwaysZero on\n\n')
-        trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x +'.bigWig' + '\nshortLabel ' + request.POST['short_label']+
-            'bigwig\nlongLabel ' + request.POST['long_label'] + 'bigwig\ntype bigWig\ncolor 0,0,0\nparent ' + x + 'multiWig\nautoScale on\nnegativeValues on\ngraphTypeDefault points'+
+        trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x + '.bigWig\nshortLabel ' + request.POST['short_label'] +
+                         'bigwig\nlongLabel ' + request.POST['long_label'] + 'bigwig\ntype bigWig\ncolor 0,0,0\nparent '
+                         + x + 'multiWig\nautoScale on\nnegativeValues on\ngraphTypeDefault points' +
                          '\nalwaysZero on\n\n')
-        trackdbtxt.write('track ' + x + '_segments\nbigDataUrl ' + x + '_segments.bigWig' + '\nshortLabel ' + request.POST['short_label'] +
-            'segments\nlongLabel ' + request.POST['long_label'] + 'segments\ntype bigWig\ncolor 0,253,0\nparent ' + x + 'multiWig\nautoscale on\nnegativeValues on'+
-                         '\nalwaysZero on\n\n')
+        trackdbtxt.write('track ' + x + '_segments\nbigDataUrl ' + x + '_segments.bigWig' + '\nshortLabel ' +
+                         request.POST['short_label'] + 'segments\nlongLabel ' + request.POST['long_label'] +
+                         'segments\ntype bigWig\ncolor 0,253,0\nparent ' + x +
+                         'multiWig\nautoscale on\nnegativeValues on' + '\nalwaysZero on\n\n')
     trackdbtxt.close()
     os.chdir(olddir)
     trackhub = db.Trackhub(request.POST['short_label'])
@@ -981,6 +985,7 @@ def trackhub_details(request):
     md = request.matchdict
     trackhub = db.Trackhub(md["short_name"]).get()
     info = {
+        'url': request.route_url('trackhub_file', short_name=md["short_name"], file="hub.txt"),
         'profiles': trackhub["profiles"],
         'short_name': md["short_name"],
         'long_name': trackhub["long_label"],
@@ -1012,6 +1017,7 @@ def trackhub_list(request):
         'user': md["user"]
     }
     return info
+
 
 def respond_bed_csv(table, fmt, hinfo, dicts, header=True):
     response = Response(content_type="text/plain")

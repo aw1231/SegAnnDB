@@ -16,6 +16,12 @@
       </p>
       <br/>
       <p>
+          URL: <a href="${url}">${url}</a>
+          <br/>
+          Paste this into UCSC's My Hub page to view your trackhub.
+      </p>
+      <br/>
+      <p>
       Profiles:
       <br/>
       <div tal:repeat="p profiles">
