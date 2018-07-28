@@ -931,15 +931,18 @@ def export_trackhub(request):
     trackdbtxt = open('trackDb.txt', 'w')
     for x in request.POST['profile']:
         trackdbtxt.write('track ' + x + 'multiWig\ntype bigWig\ncontainer multiWig\naggregate transparentOverlay\nshortLabel ' + request.POST['short_label'] + 'multiWig\nlongLabel ' +
-                         request.POST['long_label'] + 'multiWig\nautoScale on\nnegativeValues on\n\n\n')
+                         request.POST['long_label'] + 'multiWig\nautoScale on\nnegativeValues on\nalwaysZero on\n\n')
         for datatype in usedlist:
             if datatype != "segments":
                 trackdbtxt.write('track ' + x + "_" + datatype + '\nbigDataUrl ' + x+'_'+datatype+'.bigbed' + '\nshortLabel ' +
-                    request.POST['short_label'] + datatype + '\nlongLabel ' + request.POST['long_label'] + datatype + '\ntype bigBed\ncolor 0,253,0\n\n')
+                    request.POST['short_label'] + datatype + '\nlongLabel ' + request.POST['long_label'] + datatype + '\ntype bigBed\ncolor 0,253,0' +
+                                 '\nalwaysZero on\n\n')
         trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x +'.bigWig' + '\nshortLabel ' + request.POST['short_label']+
-            'bigwig\nlongLabel ' + request.POST['long_label'] + 'bigwig\ntype bigWig\ncolor 0,0,0\nparent ' + x + 'multiWig\nautoScale on\nnegativeValues on\ngraphTypeDefault points\n\n')
+            'bigwig\nlongLabel ' + request.POST['long_label'] + 'bigwig\ntype bigWig\ncolor 0,0,0\nparent ' + x + 'multiWig\nautoScale on\nnegativeValues on\ngraphTypeDefault points'+
+                         '\nalwaysZero on\n\n')
         trackdbtxt.write('track ' + x + '_segments\nbigDataUrl ' + x + '_segments.bigWig' + '\nshortLabel ' + request.POST['short_label'] +
-            'segments\nlongLabel ' + request.POST['long_label'] + 'segments\ntype bigWig\ncolor 0,253,0\nparent ' + x + 'multiWig\nautoscale on\nnegativeValues on\n\n')
+            'segments\nlongLabel ' + request.POST['long_label'] + 'segments\ntype bigWig\ncolor 0,253,0\nparent ' + x + 'multiWig\nautoscale on\nnegativeValues on'+
+                         '\nalwaysZero on\n\n')
     trackdbtxt.close()
     os.chdir(olddir)
     trackhub = db.Trackhub(request.POST['short_label'])
