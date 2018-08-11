@@ -20,6 +20,7 @@ class SegAnnTest(unittest.TestCase):
         self.driver = webdriver.Firefox()
         # enter the test_profile_path here
         self.test_profile_path = os.path.join(os.getcwd(),"test_profile.bedGraph.gz")
+        self.test_second_profile_path = os.path.join(os.getcwd(),"test_Normal02.bedGraph.gz")
 
     def test010_isSegAnnUp(self):
         """
@@ -133,7 +134,7 @@ class SegAnnTest(unittest.TestCase):
         wait = WebDriverWait(driver, 60)
         assert wait.until(
             EC.element_to_be_clickable((By.ID, "signout"))).is_displayed()
-        driver.get("http://127.0.0.1:8080/trackhub_init/seganntest2@gmail.com/")
+        driver.get("http://127.0.0.1:8080/trackhub_init/")
         shortname_field = driver.find_element_by_id("id_short_label")
         shortname_field.send_keys("test1")
         longname_field = driver.find_element_by_id("id_long_label")
@@ -145,28 +146,78 @@ class SegAnnTest(unittest.TestCase):
         submit_button = driver.find_element_by_id("submit_button")
         submit_button.click()
         sleep(10)
-        if ("Trackhub data for test1" in driver.page_source):
+        if ("Trackhub data for test1" in driver.page_source) and ("ES0004" in driver.page_source):
             assert True
         else:
             assert False
 
-    def test060_no_header(self):
+    def test060_multi_profile_trackhub(self):
+        print "Test#6 Multi Profile Trackhub Creation Test"
+        driver = self.driver
+        driver.get("http://127.0.0.1:8080/")
+        self.login(driver)
+
+        # make sure that we are logged in
+        wait = WebDriverWait(driver, 60)
+        assert wait.until(
+            EC.element_to_be_clickable((By.ID, "signout"))).is_displayed()
+
+        # go to the upload page
+        driver.get("http://127.0.0.1:8080/upload")
+
+        # in the upload file field, upload the file
+        upload_field = driver.find_element_by_id("id_file")
+        test_second_profile_path = self.test_second_profile_path
+        upload_field.send_keys(test_second_profile_path)
+
+        # we need to use the submit() button
+        # because when we submit forms via click
+        # the whole thing has been found to freeze.
+        elem = driver.find_element_by_id("submit_button")
+        elem.submit()
+
+        assert wait.until(
+            EC.presence_of_element_located((By.ID, "success")))
+
+        time.sleep(60)
+
+        driver.get("http://127.0.0.1:8080/trackhub_init/")
+        shortname_field = driver.find_element_by_id("id_short_label")
+        shortname_field.send_keys("test2")
+        longname_field = driver.find_element_by_id("id_long_label")
+        longname_field.send_keys("test2long")
+        db_field = driver.find_element_by_id("id_db")
+        db_field.send_keys("hg19")
+        profile_box = driver.find_element_by_xpath("//input[@value='ES0004']")
+        profile_box.click()
+        profile_box2 = driver.find_element_by_xpath("//input[@value='Normal02']")
+        profile_box2.click()
+        submit_button = driver.find_element_by_id("submit_button")
+        submit_button.click()
+        sleep(10)
+        if ("Trackhub data for test2" in driver.page_source) and ("ES0004" in driver.page_source) \
+                and ("Normal02" in driver.page_source):
+            assert True
+        else:
+            assert False
+
+    def test070_no_header(self):
         """
         This test checks if header non-creation is properly done.
         It also performs no login to simulate UCSC access.
         """
-        print "Test#6 Non-Header export test"
+        print "Test#7 Non-Header export test"
         bedfile = urllib2.urlopen('http://127.0.0.1:8080/trackhub/test1/hg19/ES0004_breaks.bed')
         if ("track" in bedfile.read()):
             assert False
         else:
             assert True
 
-    def test070_header(self):
+    def test080_header(self):
         """
         This checks that file header creation occurs by default
         """
-        print "Test#7 Header export test"
+        print "Test#8 Header export test"
         driver = self.driver
         driver.get("http://127.0.0.1:8080/")
         self.login(driver)
@@ -180,11 +231,11 @@ class SegAnnTest(unittest.TestCase):
         else:
             assert False
 
-    def test080_delete(self):
+    def test090_delete(self):
         """
         This test is for checking if we are able to delete the uploaded profile
         """
-        print "Test#8 Profile Deleting test."
+        print "Test#9 Profile Deleting test."
         driver = self.driver
         driver.get("http://127.0.0.1:8080/")
         self.login(driver)

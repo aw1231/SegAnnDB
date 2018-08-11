@@ -638,12 +638,12 @@ def upload_profile_user_file(userid, upload):
     finallist = []
     for data in f:
         if data != header:
-            linelist = data.split('\t')
-            if linelist == ['']:
+            linelist = data.split('\t')  # seperates line by tabs
+            if linelist == ['']:  # if the line is blank, skip it
                 continue
-            if len(linelist) >= 2:
-                if linelist[0][3:] not in cl.keys():
-                    continue  # removes invalid chromosomes
+            if len(linelist) >= 2:  # ignores first line
+                if linelist[0][3:] not in cl.keys():  # removes invalid chromosomes
+                    continue
                 if linelist[0] + linelist[1] in probelist:  # removes duplicates
                     continue
                 probelist.add(linelist[0] + linelist[1])
@@ -851,13 +851,12 @@ def export(request):
              renderer="templates/trackhub_export.pt")
 def export_trackhub(request):
     # get filename and db version
-    md = request.matchdict
     os.makedirs(os.getcwd()+'/trackhubs/' + request.POST['short_label'] + '/')
     olddir = os.getcwd()
     os.chdir('trackhubs/' + request.POST['short_label'])
     hubtxt = open('hub.txt', 'w')
     hubtxt.write('hub ' + request.POST['short_label'] + '\nshortLabel ' + request.POST['short_label'] + '\nlongLabel ' +
-                 request.POST['long_label'] + '\ngenomesFile genomes.txt\nemail ' + md['user'])
+                 request.POST['long_label'] + '\ngenomesFile genomes.txt\nemail ' + authenticated_userid(request))
     hubtxt.close()
     genomestxt = open('genomes.txt', 'w')
     genomestxt.write('genome ' + request.POST['db'] + '\ntrackDb ' + request.POST['db'] + '/trackDb.txt')
@@ -871,19 +870,17 @@ def export_trackhub(request):
     chromsizes.close()
     os.remove("chrom.sizes.gz")
     usedlist = []
-    if isinstance(request.POST['profile'], basestring):
-        request.POST['profile'] = [request.POST['profile']]
-    for x in request.POST['profile']:
+    for x in request.POST.getall('profile'):
         pro = db.Profile(x)
         pinfo = pro.get()
         for datatype in ["breaks", "regions", "copies", "segments"]:
             fun = getattr(pro, datatype)
             # need to
-            dicts = fun(md["user"])
+            dicts = fun(authenticated_userid(request))
             pinfo["table"] = datatype
             pinfo["visibility"] = EXPORT_VISIBILITY[datatype]
             for d in dicts:
-                d["user_id"] = md["user"]
+                d["user_id"] = authenticated_userid(request)
                 d["profile_id"] = x
             if datatype != "segments":
                 tosplitbed = respond_bed_csv(datatype, "bed", pinfo, dicts, False).text
@@ -929,32 +926,32 @@ def export_trackhub(request):
         subprocess.call(['bedGraphToBigWig', x+'.bedGraph', 'chrom.sizes', x+'.bigWig'])
         os.remove(x+'.bedGraph')
     trackdbtxt = open('trackDb.txt', 'w')
-    for x in request.POST['profile']:
-        trackdbtxt.write('track ' + x + 'multiWig\ntype bigWig\ncontainer multiWig\naggregate transparentOverlay\n' +
+    for x in request.POST.getall('profile'):
+        trackdbtxt.write('track %s' % x + 'multiWig\ntype bigWig\ncontainer multiWig\naggregate transparentOverlay\n' +
                          'shortLabel ' + request.POST['short_label'] + 'multiWig\nlongLabel ' +
                          request.POST['long_label'] + 'multiWig\nautoScale on\nnegativeValues on\nalwaysZero on\n\n')
         for datatype in usedlist:
             if datatype != "segments":
-                trackdbtxt.write('track ' + x + "_" + datatype + '\nbigDataUrl ' + x+'_'+datatype+'.bigbed' +
+                trackdbtxt.write('track %s_' % x + datatype + '\nbigDataUrl %s_' % x + datatype + '.bigbed' +
                                  '\nshortLabel ' + request.POST['short_label'] + datatype + '\nlongLabel ' +
                                  request.POST['long_label'] + datatype + '\ntype bigBed\ncolor 0,253,0' +
                                  '\nalwaysZero on\n\n')
-        trackdbtxt.write('track ' + x + '\nbigDataUrl ' + x + '.bigWig\nshortLabel ' + request.POST['short_label'] +
-                         'bigwig\nlongLabel ' + request.POST['long_label'] + 'bigwig\ntype bigWig\ncolor 0,0,0\nparent '
-                         + x + 'multiWig\nautoScale on\nnegativeValues on\ngraphTypeDefault points' +
-                         '\nalwaysZero on\n\n')
-        trackdbtxt.write('track ' + x + '_segments\nbigDataUrl ' + x + '_segments.bigWig' + '\nshortLabel ' +
+        trackdbtxt.write('track %s' % x + '\nbigDataUrl %s' % x + '.bigWig\nshortLabel ' + request.POST['short_label'] +
+                         'bigwig\nlongLabel ' + request.POST['long_label'] +
+                         'bigwig\ntype bigWig\ncolor 0,0,0\nparent %s' % x +
+                         'multiWig\nautoScale on\nnegativeValues on\ngraphTypeDefault points\nalwaysZero on\n\n')
+        trackdbtxt.write('track %s' % x + '_segments\nbigDataUrl %s' % x + '_segments.bigWig' + '\nshortLabel ' +
                          request.POST['short_label'] + 'segments\nlongLabel ' + request.POST['long_label'] +
-                         'segments\ntype bigWig\ncolor 0,253,0\nparent ' + x +
-                         'multiWig\nautoscale on\nnegativeValues on' + '\nalwaysZero on\n\n')
+                         'segments\ntype bigWig\ncolor 0,253,0\nparent %s' % x +
+                         'multiWig\nautoscale on\nnegativeValues on\nalwaysZero on\n\n')
     trackdbtxt.close()
     os.chdir(olddir)
     trackhub = db.Trackhub(request.POST['short_label'])
     trackhubdata = trackhub.get()
     trackhubdata['long_label'] = request.POST['long_label']
-    trackhubdata['profiles'] = request.POST['profile']
+    trackhubdata['profiles'] = request.POST.getall('profile')
     trackhub.put(trackhubdata)
-    usertrackhubs = db.UserTrackhubs(md["user"])
+    usertrackhubs = db.UserTrackhubs(authenticated_userid(request))
     usertrackhubsdata = usertrackhubs.get()
     usertrackhubsdata.append(request.POST['short_label'])
     usertrackhubs.put(usertrackhubsdata)
@@ -1009,12 +1006,13 @@ def trackhub_file(request):
              renderer="templates/trackhub_list.pt")
 def trackhub_list(request):
     md = request.matchdict
-    trackhubs = db.UserTrackhubs(md["user"])
+    userid = authenticated_userid(request)
+    trackhubs = db.UserTrackhubs(userid)
     trackhubslist = trackhubs.get()
     info = {
         'url': request.host_url,
         'trackhubs': trackhubslist,
-        'user': md["user"]
+        'user': userid
     }
     return info
 
