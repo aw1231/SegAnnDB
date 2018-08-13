@@ -927,23 +927,55 @@ def export_trackhub(request):
         os.remove(x+'.bedGraph')
     trackdbtxt = open('trackDb.txt', 'w')
     for x in request.POST.getall('profile'):
-        trackdbtxt.write('track %s' % x + 'multiWig\ntype bigWig\ncontainer multiWig\naggregate transparentOverlay\n' +
-                         'shortLabel ' + request.POST['short_label'] + 'multiWig\nlongLabel ' +
-                         request.POST['long_label'] + 'multiWig\nautoScale on\nnegativeValues on\nalwaysZero on\n\n')
+        trackdbtxt.write("""track %smultiWig
+type bigWig
+container multiWig
+aggregate transparentOverlay
+shortLabel  %smultiWig
+longLabel %smultiWig
+autoScale on
+negativeValues on
+alwaysZero on
+
+""" % (x, request.POST['short_label'], request.POST['long_label']))
         for datatype in usedlist:
             if datatype != "segments":
-                trackdbtxt.write('track %s_' % x + datatype + '\nbigDataUrl %s_' % x + datatype + '.bigbed' +
-                                 '\nshortLabel ' + request.POST['short_label'] + datatype + '\nlongLabel ' +
-                                 request.POST['long_label'] + datatype + '\ntype bigBed\ncolor 0,253,0' +
-                                 '\nalwaysZero on\n\n')
-        trackdbtxt.write('track %s' % x + '\nbigDataUrl %s' % x + '.bigWig\nshortLabel ' + request.POST['short_label'] +
-                         'bigwig\nlongLabel ' + request.POST['long_label'] +
-                         'bigwig\ntype bigWig\ncolor 0,0,0\nparent %s' % x +
-                         'multiWig\nautoScale on\nnegativeValues on\ngraphTypeDefault points\nalwaysZero on\n\n')
-        trackdbtxt.write('track %s' % x + '_segments\nbigDataUrl %s' % x + '_segments.bigWig' + '\nshortLabel ' +
-                         request.POST['short_label'] + 'segments\nlongLabel ' + request.POST['long_label'] +
-                         'segments\ntype bigWig\ncolor 0,253,0\nparent %s' % x +
-                         'multiWig\nautoscale on\nnegativeValues on\nalwaysZero on\n\n')
+                trackdbtxt.write("""track %s_%s
+bigDataUrl %s_%s.bigbed
+shortLabel %s%s
+longLabel %s%s
+type bigBed
+color 0,253,0
+alwaysZero on
+
+""" % (x, datatype, x, datatype, request.POST['short_label'], datatype, request.POST['long_label'], datatype))
+
+        trackdbtxt.write("""track %s
+bigDataUrl %s.bigWig
+shortLabel %sbigwig
+longLabel %sbigwig
+type bigWig
+color 0,0,0
+parent %smultiWig
+autoScale on
+negativeValues on
+graphTypeDefault points
+alwaysZero on
+
+""" % (x, x, request.POST['short_label'], request.POST['long_label'], x))
+
+        trackdbtxt.write("""track %s_segments
+bigDataUrl %s_segments.bigWig
+shortLabel %ssegments
+longLabel %ssegments
+type bigWig
+color 0,253,0
+parent %smultiWig
+autoscale on
+negativeValues on
+alwaysZero on    
+
+""" % (x, x, request.POST['short_label'], request.POST['long_label'], x))
     trackdbtxt.close()
     os.chdir(olddir)
     trackhub = db.Trackhub(request.POST['short_label'])
